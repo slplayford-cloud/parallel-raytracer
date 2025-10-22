@@ -11,7 +11,7 @@ VERSION or DATE: June 9th 2023 (V 4.3)
 
 HOW TO START THIS PROJECT: Run RaytracerDriver.main()
 
-AUTHORS: Stephen Playford
+AUTHORS: Stephen Playford - Ben Farrar
 
 ADDITIONAL FEATURES, and SOURCES FOR OUTSIDE RESEARCH:
 
