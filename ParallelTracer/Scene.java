@@ -59,7 +59,7 @@ public class Scene
         //AMBIENT LIGHTING    
         if(ambientBounce > 0){
             //take a vector of a completely random direction
-            Vector bounceDir = new Vector(2*(Math.random()-0.5), 2*(Math.random()-0.5), 2*(Math.random()-0.5));
+            Vector bounceDir = new Vector(2*(ThreadLocalRandom.current().nextDouble()-0.5), 2*(ThreadLocalRandom.current().nextDouble()-0.5), 2*(ThreadLocalRandom.current().nextDouble()-0.5));
             
             //if its the wrong way inverse it
             if(vNorm.dot(bounceDir) < 0){
@@ -100,7 +100,7 @@ public class Scene
         
         //calculate the direction and color of the reflection
         Vector vMirror = vNorm.scale(2*(vNorm.dot(r.getDirection().scale(-1)))).subtract(r.getDirection().scale(-1));
-        vMirror = vMirror.add(new Vector(Math.random()*maxDeviance, Math.random()*maxDeviance, Math.random()*maxDeviance));
+        vMirror = vMirror.add(new Vector(ThreadLocalRandom.current().nextDouble()*maxDeviance, ThreadLocalRandom.current().nextDouble()*maxDeviance, ThreadLocalRandom.current().nextDouble()*maxDeviance));
         Ray rMirror = new Ray(closest.getPosition(), vMirror, r.getTime());
         Color reflectColor = this.computeVisibleColor(rMirror, bouncesLeft-1, ambientBounce);
         
@@ -115,37 +115,51 @@ public class Scene
     
     //use parallel processing here
     public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur){
+        return this.render(xRes, yRes, numSamples, ambientBlur, null, true);
+    }
+
+    //same as above, but also pushes each finished pixel to a live preview window as it's computed
+    public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur, PreviewWindow preview){
+        return this.render(xRes, yRes, numSamples, ambientBlur, preview, true);
+    }
+
+    //full version: "parallel" toggles between parallel-stream and plain sequential rendering.
+    //Sequential mode exists so the -c flag can race the two approaches side by side and show the speedup.
+    public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur, PreviewWindow preview, boolean parallel){
         //create an image frame with corresponding resolution
         ColorImage frame = new ColorImage(xRes, yRes);
-        
+
         /*
          * PARRALLEL PROCESSING EXPLINATION:
          *    1. Create an array which holds the x and y values of every point on the image plane
-         *    2. Convert said array to a PARALLEL stream, NOT sequential 
+         *    2. Convert said array to a PARALLEL stream, NOT sequential
          *       - Java automatically parallelizes method calls in this type of stream
          *    3. For each point in the new array, compute its color
          *    4. Set the color of frame[x][y] to new computed color
          */
-        
+
         Point2D[] points = new Point2D[xRes*yRes];
         for(int x = 0; x < xRes; x++){
             for(int y = 0; y < yRes; y++){
                 points[(yRes*x)+y] = new Point2D(x, y);
             }
         }
-        
-        //convert array to stream and make it parallel
-        Stream<Point2D> pointStream = Arrays.stream(points).parallel();
-        
+
+        //convert array to a stream; only make it parallel when requested (the ONLY difference between the two modes)
+        Stream<Point2D> pointStream = Arrays.stream(points);
+        if(parallel){
+            pointStream = pointStream.parallel();
+        }
+
         //compute the color of the point and change the color of frame
         pointStream.forEach(point ->
         {
-            this.makeImage(frame, point.getX(), point.getY(), numSamples, xRes, yRes, ambientBlur);
+            this.makeImage(frame, point.getX(), point.getY(), numSamples, xRes, yRes, ambientBlur, preview);
         });
         return frame;
     }
-    
-    public void makeImage(ColorImage frame, int x, int y, int samples, int xRes, int yRes, double ambientBlur){
+
+    public void makeImage(ColorImage frame, int x, int y, int samples, int xRes, int yRes, double ambientBlur, PreviewWindow preview){
         int aaResolution = (int)Math.sqrt(samples);
         Color c = new Color(0,0,0);
         
@@ -165,6 +179,9 @@ public class Scene
         }
         c = c.scale(1/Math.pow(aaResolution, 2));
         frame.setColor(x, y, c);
+        if(preview != null){
+            preview.setPixel(x, y, c);
+        }
     }
     
     public boolean isShadowed(Point p, Light li, double time){

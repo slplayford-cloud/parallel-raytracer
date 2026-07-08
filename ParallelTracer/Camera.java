@@ -1,3 +1,5 @@
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Camera
 {
     //Needs to store a Point location, Vectors for the forward, up, and right directions, and two doubles for the field of view: xFoV and yFoV.
@@ -34,9 +36,9 @@ public class Camera
     //generate a ray which starts at the camera and goes to a point in 3D space
     public Ray generateRay(double u, double v){
         //calculate a random point on the lens so we can apply DOF
-        Point randP = location.add(forward.scale(Math.random()*size)).add(right.scale(Math.random()*size));
+        Point randP = location.add(forward.scale(ThreadLocalRandom.current().nextDouble()*size)).add(right.scale(ThreadLocalRandom.current().nextDouble()*size));
         Vector toImagePlane = imagePlanePoint(u, v).subtract(randP);
-        Ray ray = new Ray(randP, toImagePlane, Math.random());
+        Ray ray = new Ray(randP, toImagePlane, ThreadLocalRandom.current().nextDouble());
         return ray;
     }
 }

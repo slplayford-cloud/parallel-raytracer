@@ -1,3 +1,5 @@
+import java.util.concurrent.ThreadLocalRandom;
+
 public class LightBulb extends Light
 {
     private Color intensity;
@@ -15,7 +17,7 @@ public class LightBulb extends Light
 
     public void computeRandomPoint(){
         //choose a random point within the radius of the sphere
-        Vector pointShift = new Vector((Math.random()*2*radius)-radius, (Math.random()*2*radius)-radius, (Math.random()*2*radius)-radius);
+        Vector pointShift = new Vector((ThreadLocalRandom.current().nextDouble()*2*radius)-radius, (ThreadLocalRandom.current().nextDouble()*2*radius)-radius, (ThreadLocalRandom.current().nextDouble()*2*radius)-radius);
         pointShift = pointShift.normalize();
         //randP = position.add(pointShift);
         randP = position.add(pointShift.scale(radius));
