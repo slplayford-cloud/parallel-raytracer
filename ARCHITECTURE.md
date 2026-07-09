@@ -14,15 +14,18 @@ package — no subpackages to navigate.
    front and passed into `render`; otherwise `preview` is `null` and the
    render runs headless. (See the arg loop at the top of `main`.)
 3. `Scene.render(xRes, yRes, numSamples, ambientBlur, preview)` walks every
-   pixel and returns a `ColorImage`. When `preview != null`, each
-   parallel-stream worker calls `preview.setPixel(x, y, color)` right after
-   computing a pixel, in addition to writing it into the `ColorImage` —
-   that's what makes the window fill in live instead of only appearing once
-   rendering is done. `PreviewWindow` repaints itself on its own `Timer` tick
-   rather than on every `setPixel` call, since re-painting per-pixel across
-   hundreds of thousands of parallel calls would slow the render down badly.
-   The no-preview `render(...)` overload (no `PreviewWindow` argument) is
-   still there and just passes `null` through.
+   pixel and returns a `ColorImage`. The `preview` is a `PixelSink`
+   (`PixelSink.java`) — a one-method interface (`setPixel(x, y, color)`) so the
+   render loop doesn't care what it's drawing into. When `preview != null`,
+   each parallel-stream worker calls `preview.setPixel(...)` right after
+   computing a pixel, in addition to writing it into the `ColorImage` — that's
+   what makes a window fill in live instead of only appearing once rendering is
+   done. Implementations repaint on their own `Timer` tick rather than on every
+   `setPixel` call, since re-painting per-pixel across hundreds of thousands of
+   parallel calls would slow the render down badly. The two `PixelSink`s are
+   `PreviewWindow` (the `-v` single window) and the per-side adapters inside
+   `RaceWindow` (the `-c` demo, below). The no-preview `render(...)` overload
+   just passes `null`.
 4. `RaytracerDriver.saveImage(...)` converts the `ColorImage` to a
    `BufferedImage` and writes it out with `ImageIO`.
 
@@ -126,15 +129,19 @@ at ~1.6x on 8 cores. Switching to `ThreadLocalRandom` (an independent
 generator per thread) is what lets the parallel render actually scale (~5x).
 **Use `ThreadLocalRandom`, never `Math.random()`, in render-path code.**
 
-**The `-c` race (`RaytracerDriver.renderRace`).** Demonstrates the above by
-rendering two independent copies of the scene *simultaneously* — one with
-`parallel=false`, one with `parallel=true` — each on its own `Thread` and into
-its own side-by-side `PreviewWindow`, then printing the wall-clock speedup. It
-deliberately builds **two separate `Scene` instances** because `Light`s mutate
-an internal random sample point (`LightBulb.randP`) during rendering, so two
-renders sharing one `Scene` would race on that field. (Within a *single*
-render this same field is technically raced across parallel workers too — it's
-a pre-existing source of extra soft-shadow noise, harmless but worth knowing.)
+**The `-c` race (`RaytracerDriver.renderRace` + `RaceWindow`).** Demonstrates
+the above by rendering two independent copies of the scene *simultaneously* —
+one with `parallel=false`, one with `parallel=true` — each on its own `Thread`,
+both drawing into a single full-screen `RaceWindow` (`RaceWindow.java`). The
+window hands each thread a `PixelSink` (`leftSink()` / `rightSink()`) that
+writes into that side's `BufferedImage`, and its custom `paintComponent` draws
+the explanatory text, both images side by side, per-side live progress/timers,
+and the final speedup footer. `renderRace` deliberately builds **two separate
+`Scene` instances** because `Light`s mutate an internal random sample point
+(`LightBulb.randP`) during rendering, so two renders sharing one `Scene` would
+race on that field. (Within a *single* render this same field is technically
+raced across parallel workers too — a pre-existing source of extra soft-shadow
+noise, harmless but worth knowing.)
 
 ## Adding a scene
 

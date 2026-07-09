@@ -52,25 +52,32 @@ plain SSH session without X forwarding.
 
 ### `-c`: the parallel-vs-sequential race demo
 
-Pass **`-c`** to show what the parallel streams actually buy you. It renders
-the *same scene twice at once* — once sequentially, once in parallel — each in
-its own preview window, so you watch the parallel window race ahead and finish
-first. When both finish it prints the timings and speedup, e.g.:
+Pass **`-c`** to show what the parallel streams actually buy you. It opens a
+**single full-screen window** (`RaceWindow.java`) that renders the *same scene
+twice at once* — once sequentially (one CPU core), once in parallel (all cores)
+— side by side, with a title and one-line explanation above, live per-side
+progress + timers below each image, and the final speedup across the bottom.
+It's built to be understood at a glance by someone who's never seen it: you
+watch the parallel side fill in and finish first, then sit "done" while the
+sequential side grinds on (the footer calls this out). When both finish it
+prints the same summary to stdout:
 
 ```
 Sequential: 60.3s | Parallel: 12.5s | Speedup: 4.8x
 ```
 
 Notes:
+- **Press ESC to exit** (the window is undecorated/full screen, so there's no
+  close button). The window stays up on the final frame until you do.
 - Both renders run **at the same time**, so they share CPU cores — the numbers
   are an illustrative demo, not a rigorous benchmark (the parallel side would
   be a touch faster if it had the machine to itself).
 - The race honors the resolution set at the top of `main` (currently
   1280x720). Sequential is the slow one — at 1280x720 it takes ~a minute on an
   8-core machine. **Lower the resolution** in `main` for a snappier race.
-- Window placement (side by side) is a hint; a tiling window manager may
-  arrange the two windows however it likes (e.g. stacked).
-- Also needs a graphical display, like `-v`.
+- Needs a graphical display, like `-v`. Full-screen behavior depends on your
+  window manager; if exclusive full screen is refused it falls back to a
+  maximized borderless window.
 
 **Why the speedup is as big as it is:** the render calls the RNG many times per
 ray (camera depth-of-field, ambient/reflection jitter, soft-shadow sampling).
