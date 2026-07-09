@@ -118,7 +118,7 @@ public class RaceWindow extends JFrame {
 
         g2.setColor(TEXT_DIM);
         g2.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 21));
-        drawCentered(g2, "The left image uses a single CPU core and the right uses"
+        drawCentered(g2, "The left image uses a single CPU core and the right uses "
              + cores + " cores.", W / 2, 100);
 
         //ESC hint, top-right
