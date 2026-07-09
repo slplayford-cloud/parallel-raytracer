@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The title carries a caller-supplied label plus a live progress % and elapsed
  * timer, which is what makes the -c sequential-vs-parallel race legible.
  */
-public class PreviewWindow extends JFrame {
+public class PreviewWindow extends JFrame implements PixelSink {
     private final BufferedImage image;
     private final int height;
     private final int totalPixels;

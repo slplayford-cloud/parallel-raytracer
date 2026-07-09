@@ -118,14 +118,15 @@ public class Scene
         return this.render(xRes, yRes, numSamples, ambientBlur, null, true);
     }
 
-    //same as above, but also pushes each finished pixel to a live preview window as it's computed
-    public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur, PreviewWindow preview){
+    //same as above, but also pushes each finished pixel to a live preview sink as it's computed
+    public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur, PixelSink preview){
         return this.render(xRes, yRes, numSamples, ambientBlur, preview, true);
     }
 
     //full version: "parallel" toggles between parallel-stream and plain sequential rendering.
     //Sequential mode exists so the -c flag can race the two approaches side by side and show the speedup.
-    public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur, PreviewWindow preview, boolean parallel){
+    //"preview" is any PixelSink (a live window, one side of the -c race, or null for headless).
+    public ColorImage render(int xRes, int yRes, int numSamples, double ambientBlur, PixelSink preview, boolean parallel){
         //create an image frame with corresponding resolution
         ColorImage frame = new ColorImage(xRes, yRes);
 
@@ -159,7 +160,7 @@ public class Scene
         return frame;
     }
 
-    public void makeImage(ColorImage frame, int x, int y, int samples, int xRes, int yRes, double ambientBlur, PreviewWindow preview){
+    public void makeImage(ColorImage frame, int x, int y, int samples, int xRes, int yRes, double ambientBlur, PixelSink preview){
         int aaResolution = (int)Math.sqrt(samples);
         Color c = new Color(0,0,0);
         

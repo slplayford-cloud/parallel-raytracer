@@ -71,9 +71,9 @@ public class RaytracerDriver {
     }
 
     /**
-     * -c demo mode: render the same scene sequentially and in parallel AT THE SAME TIME, each into
-     * its own side-by-side preview window, so you can watch the parallel render visibly race ahead.
-     * Prints each render's wall-clock time and the resulting speedup.
+     * -c demo mode: render the same scene sequentially and in parallel AT THE SAME TIME, both inside
+     * ONE full-screen window (RaceWindow) with explanatory text, so a first-time viewer immediately
+     * sees the parallel render race ahead and finish first. Prints the wall-clock times and speedup.
      *
      * Note: because both renders run concurrently they share the CPU cores, so the times are an
      * illustrative demo rather than a rigorous benchmark. Each render gets its own Scene instance so
@@ -82,15 +82,14 @@ public class RaytracerDriver {
     public static void renderRace(int xResolution, int yResolution){
         System.out.println("Racing sequential vs parallel render...");
 
+        int cores = Runtime.getRuntime().availableProcessors();
+
         //Two independent scenes so the concurrent renders share no mutable state.
         Scene seqScene = SceneCreator.cornellBox(xResolution, yResolution);
         Scene parScene = SceneCreator.cornellBox(xResolution, yResolution);
 
-        //Side-by-side windows: sequential on the left, parallel on the right.
-        PreviewWindow seqWindow = new PreviewWindow(xResolution, yResolution, "Sequential");
-        PreviewWindow parWindow = new PreviewWindow(xResolution, yResolution, "Parallel");
-        seqWindow.setLocation(0, 0);
-        parWindow.setLocation(xResolution, 0);
+        //One full-screen window hosting both renders side by side.
+        RaceWindow window = new RaceWindow(xResolution, yResolution, cores);
 
         //Result holders written from the worker threads.
         final long[] seqMillis = new long[1];
@@ -99,15 +98,15 @@ public class RaytracerDriver {
 
         Thread seqThread = new Thread(() -> {
             long t = System.currentTimeMillis();
-            seqScene.render(xResolution, yResolution, 16, 2, seqWindow, false);
+            seqScene.render(xResolution, yResolution, 16, 2, window.leftSink(), false);
             seqMillis[0] = System.currentTimeMillis() - t;
-            seqWindow.finish();
+            window.markDone(true, seqMillis[0]);
         });
         Thread parThread = new Thread(() -> {
             long t = System.currentTimeMillis();
-            parResult[0] = parScene.render(xResolution, yResolution, 16, 2, parWindow, true);
+            parResult[0] = parScene.render(xResolution, yResolution, 16, 2, window.rightSink(), true);
             parMillis[0] = System.currentTimeMillis() - t;
-            parWindow.finish();
+            window.markDone(false, parMillis[0]);
         });
 
         //Start together so it's a real race.
@@ -123,7 +122,7 @@ public class RaytracerDriver {
         System.out.printf("Sequential: %.1fs | Parallel: %.1fs | Speedup: %.1fx%n",
             seqMillis[0]/1000.0, parMillis[0]/1000.0, (double)seqMillis[0]/parMillis[0]);
 
-        //Save the parallel result (both windows stay open so you can compare the finished images + times).
+        //Save the parallel result (the window stays open so you can compare the finished images + times).
         saveImage("CornellBox.png", parResult[0]);
         System.out.println("Done");
     }
